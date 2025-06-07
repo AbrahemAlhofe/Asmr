@@ -1,5 +1,5 @@
 export type Block = {
     heading: string;
-    offset: number;
-    body: Array<{ role: string, text: string }>;
+    timestamp: number;
+    body: Array<{ name: string, role: string, text: string }>;
 }

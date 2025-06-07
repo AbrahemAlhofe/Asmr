@@ -7,15 +7,12 @@ import {
   Box,
   VStack,
   Heading,
-  Flex,
   HStack,
   Avatar,
-  Container,
   Text
 } from "@chakra-ui/react";
 import { Block } from "@/lib/types";
 import YouTube, { YouTubePlayer } from 'react-youtube';
-import { formatSecondsToTimestamp } from "@/lib/utils";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -89,9 +86,9 @@ export default function Home() {
       <VStack ref={analysisRef} gap={4} p={8} w="55vw">
           {analysis.map((block: Block) => (
             <>
-              <Heading as="h2" size="lg" mt={4} textAlign="start" cursor="pointer" w="full" onClick={() => player?.current.internalPlayer.seekTo(block.offset)} data-offset={block.offset}>
+              <Heading as="h2" size="lg" mt={4} textAlign="start" cursor="pointer" w="full" data-timestamp={block.timestamp}>
                 <Text textDecoration="underline">{block.heading}</Text>
-                <Text fontSize="sm" color="gray.500" fontWeight="medium" lineHeight="1.5em" mt={2}>{formatSecondsToTimestamp(block.offset)}</Text>
+                <Text fontSize="sm" color="gray.500" fontWeight="medium" lineHeight="1.5em" mt={2}>{block.timestamp}</Text>
               </Heading>
               {block.body.map((item) => (
                 <Box
@@ -108,7 +105,7 @@ export default function Home() {
                     <Avatar.Root>
                       <Avatar.Fallback />
                     </Avatar.Root>
-                    <b>{item.role}</b>
+                    <b>{item.name}</b>
                   </HStack>
                   <Box as="p" textAlign="justify">{item.text}</Box>
                   <Box mt={4} fontSize={"sm"} color="gray.500" fontWeight="medium" lineHeight="1.5em">

@@ -1,9 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest } from "next/server";
-import { YoutubeTranscript } from "youtube-transcript";
 import fs from "fs/promises";
 import path from "path";
-import Mustache from "mustache";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
@@ -16,58 +14,68 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const transcript = await YoutubeTranscript.fetchTranscript(url, {
-      lang: "ar",
-    });
-
     const instructions = await fs.readFile(
-      path.join(process.cwd(), "prompts", "instructions.md"),
+      path.join(process.cwd(), "prompts", "transcripting.md"),
       "utf8"
     );
 
-    const model = "gemini-2.5-flash-preview-04-17";
-    const config = {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          required: ["heading", "offset", "body"],
-          properties: {
-            heading: { type: Type.STRING },
-            offset: { type: Type.STRING },
-            body: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                required: ["role", "text"],
-                properties: {
-                  role: { type: Type.STRING },
-                  text: { type: Type.STRING },
+    const stream = await ai.models.generateContentStream({
+      model: "gemini-2.5-flash-preview-05-20",
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            required: ["heading", "timestamp", "body"],
+            properties: {
+              heading: {
+                type: Type.STRING,
+              },
+              timestamp: {
+                type: Type.STRING,
+              },
+              body: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  required: ["name", "role", "text"],
+                  properties: {
+                    name: {
+                      type: Type.STRING,
+                    },
+                    role: {
+                      type: Type.STRING,
+                    },
+                    text: {
+                      type: Type.STRING,
+                    },
+                  },
                 },
               },
             },
+            propertyOrdering: ["heading", "timestamp", "body"],
           },
-          propertyOrdering: ["heading", "offset", "body"],
         },
+        systemInstruction: [
+          {
+            text: instructions,
+          },
+        ],
       },
-      systemInstruction: [
+      contents: [
         {
-          text: instructions,
+          role: "user",
+          parts: [
+            {
+              fileData: {
+                fileUri: url,
+                mimeType: "video/*",
+              },
+            },
+          ],
         },
-      ],
-    };
-    const contents = [
-      {
-        role: "user",
-        parts: [{ text: transcript.map((t) => `[${t.offset}] ${t.text}`).join("\n") }],
-      },
-    ];
-
-    const stream = await ai.models.generateContentStream({
-      model,
-      config,
-      contents,
+      ]
     });
     const encoder = new TextEncoder();
     const streamBody = new ReadableStream({
