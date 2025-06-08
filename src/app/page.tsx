@@ -9,7 +9,8 @@ import {
   Heading,
   HStack,
   Avatar,
-  Text
+  Text,
+  Container
 } from "@chakra-ui/react";
 import { Block, TranscribeResponse } from "@/lib/types";
 import YouTube, { YouTubePlayer } from 'react-youtube';
@@ -25,21 +26,25 @@ export default function Home() {
   const [totalCost, setTotalCost] = useState(0);
 
   useEffect(() => {
-
     if (analysisRef.current != null) {
       const height = analysisRef.current.getBoundingClientRect().height;
       setPlayerContainerHeight(height);
     }
-
   }, [analysisRef, transcript])
 
   useEffect(() => {
-
     if ( url.length != 0 ) setVideoId(url.split("v=")[1]);
-
   }, [url])
 
-  const handleAnalyze = async () => {
+  const setTimestamp = (timestamp: string) => () => {
+    if (player.current) {
+      const seconds = timestamp.split(":").reduce((acc, time) => (60 * acc) + +time, 0);
+      player.current.internalPlayer.seekTo(seconds);
+      player.current.internalPlayer.playVideo();
+    }
+  }
+
+  const getTranscript = async () => {
     setLoading(true); // Start loading
     try {
       const response = await fetch("/api/transcribe", {
@@ -49,7 +54,7 @@ export default function Home() {
       });
       const { transcription, cost }: TranscribeResponse = await response.json();
       setTranscription(transcription);
-      setTotalCost(Math.round(cost));
+      setTotalCost(+cost.toFixed(2));
     } catch (error) {
       console.error("Error analyzing:", error);
     } finally {
@@ -69,7 +74,7 @@ export default function Home() {
           <HStack w="full">
             <Button
               colorScheme="teal"
-              onClick={handleAnalyze}
+              onClick={getTranscript}
               loading={loading}
               p={4}
             >
@@ -91,8 +96,8 @@ export default function Home() {
       </Box>
       <VStack ref={analysisRef} gap={4} p={8} w="55vw">
           {transcript.map((block: Block) => (
-            <>
-              <Heading as="h2" size="lg" mt={4} textAlign="start" cursor="pointer" w="full" data-timestamp={block.timestamp}>
+            <Container key={block.timestamp} w="full">
+              <Heading as="h2" size="lg" mt={4} textAlign="start" cursor="pointer" w="full" onClick={setTimestamp(block.timestamp)}>
                 <Text textDecoration="underline">{block.heading}</Text>
                 <Text fontSize="sm" color="gray.500" fontWeight="medium" lineHeight="1.5em" mt={2}>{block.timestamp}</Text>
               </Heading>
@@ -106,6 +111,7 @@ export default function Home() {
                   overflowY="auto"
                   dir="rtl"
                   w="full"
+                  key={`${block.timestamp}-${item.name}`}
                 >
                   <HStack>
                     <Avatar.Root>
@@ -119,7 +125,7 @@ export default function Home() {
                   </Box>
                 </Box>
               ))}
-            </>
+            </Container>
           ))}
       </VStack>
     </HStack>

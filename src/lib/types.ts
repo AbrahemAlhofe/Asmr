@@ -1,6 +1,6 @@
 export type Block = {
     heading: string;
-    timestamp: number;
+    timestamp: string;
     body: Array<{ name: string, role: string, text: string }>;
 }
 
