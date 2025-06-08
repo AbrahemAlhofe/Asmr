@@ -11,27 +11,27 @@ import {
   Avatar,
   Text
 } from "@chakra-ui/react";
-import { Block } from "@/lib/types";
+import { Block, TranscribeResponse } from "@/lib/types";
 import YouTube, { YouTubePlayer } from 'react-youtube';
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [videoId, setVideoId] = useState("");
   const player = useRef<YouTubePlayer | null>(null);
-  const [analysis, setAnalysis] = useState([]);
+  const [transcript, setTranscription] = useState<Block[]>([]);
   const [loading, setLoading] = useState(false);
   const [playerContainerHeight, setPlayerContainerHeight] = useState(0);
   const analysisRef = useRef<HTMLDivElement | null>(null);
+  const [totalCost, setTotalCost] = useState(0);
 
   useEffect(() => {
 
     if (analysisRef.current != null) {
       const height = analysisRef.current.getBoundingClientRect().height;
-      console.log(height);
       setPlayerContainerHeight(height);
     }
 
-  }, [analysisRef, analysis])
+  }, [analysisRef, transcript])
 
   useEffect(() => {
 
@@ -42,13 +42,14 @@ export default function Home() {
   const handleAnalyze = async () => {
     setLoading(true); // Start loading
     try {
-      const response = await fetch("/api/analyze", {
+      const response = await fetch("/api/transcribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      const analysis = await response.json();
-      setAnalysis(analysis);
+      const { transcription, cost }: TranscribeResponse = await response.json();
+      setTranscription(transcription);
+      setTotalCost(Math.round(cost));
     } catch (error) {
       console.error("Error analyzing:", error);
     } finally {
@@ -61,6 +62,11 @@ export default function Home() {
       <Box height={`${playerContainerHeight}px`} flexGrow={1} position={"sticky"} top={0} right={0} zIndex={1}>
         <VStack gap={4} p={8} top={0} position={"sticky"} >
           <HStack w="full">
+            {totalCost > 0 && (
+              <Text fontFamily="monospace" color="gray.400" fontWeight="bold">التكلفة التقديرية : {totalCost * 49.43} ج.م</Text>
+            )}
+          </HStack>
+          <HStack w="full">
             <Button
               colorScheme="teal"
               onClick={handleAnalyze}
@@ -70,7 +76,7 @@ export default function Home() {
               حلل الحلقة
             </Button>
             <Input
-              placeholder="أدخل رابط الحلقة"
+              placeholder="( e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ )"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               p={5}
@@ -84,7 +90,7 @@ export default function Home() {
         </VStack>
       </Box>
       <VStack ref={analysisRef} gap={4} p={8} w="55vw">
-          {analysis.map((block: Block) => (
+          {transcript.map((block: Block) => (
             <>
               <Heading as="h2" size="lg" mt={4} textAlign="start" cursor="pointer" w="full" data-timestamp={block.timestamp}>
                 <Text textDecoration="underline">{block.heading}</Text>
