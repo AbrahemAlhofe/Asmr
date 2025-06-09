@@ -63,13 +63,22 @@ export default function Home() {
   };
 
   const summarize = async () => {
-    const response = await fetch("/api/summarize", {
+    const res = await fetch("/api/summarize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     });
-    const { summary }: SummarizeResponse = await response.json();
-    setSummary(summary);
+
+    const reader = res.body?.getReader();
+    const decoder = new TextDecoder();
+    let result = "";
+
+    while (true) {
+      const { done, value } = await reader!.read();
+      if (done) break;
+      result += decoder.decode(value);
+      setSummary(result);
+    }
   };
 
   const analyze = async () => {

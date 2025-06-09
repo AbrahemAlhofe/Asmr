@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     const model = "gemini-2.5-flash-preview-05-20";
 
-    const response = await ai.models.generateContent({
+    const stream = await ai.models.generateContentStream({
       model,
       config: {
         responseMimeType: "text/plain",
@@ -47,14 +47,24 @@ export async function POST(req: NextRequest) {
       ]
     });
 
-    if ( response.text === undefined ) {
-      return new Response("Failed to generate summary", {
-        status: 500,
-      });
-    }
+    const encoder = new TextEncoder();
 
-    return NextResponse.json<SummarizeResponse>({
-      summary: response.text
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        for await (const chunk of stream) {
+          if (chunk.text) {
+            controller.enqueue(encoder.encode(chunk.text));
+          }
+        }
+        controller.close();
+      }
+    });
+
+    return new Response(readableStream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked"
+      },
     });
   } catch (err) {
     console.error("Transcript fetch or AI generation failed:", err);
