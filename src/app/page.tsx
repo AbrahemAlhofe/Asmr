@@ -24,8 +24,9 @@ export default function Home() {
 
   const [transcript, setTranscription] = useState<Block[]>([]);
   const [summary, setSummary] = useState("");
-  const [totalCost, setTotalCost] = useState(0);
   const [people, setPeople] = useState<string[]>([]);
+  const [headings, setHeadings] = useState<string[]>([]);
+  const [totalCost, setTotalCost] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const analysisRef = useRef<HTMLDivElement | null>(null);
@@ -60,6 +61,7 @@ export default function Home() {
     setTranscription(transcription);
     setTotalCost(+cost.toFixed(2));
     setPeople([...new Set(transcription.flatMap(block => block.body.map(item => item.name)))]);
+    setHeadings([...new Set(transcription.map(block => block.heading))]);
   };
 
   const summarize = async () => {
@@ -114,11 +116,34 @@ export default function Home() {
           {videoId.length !== 0 && (
             <YouTube ref={player} videoId={videoId} />
           )}
+          {headings.length > 0 && (
+            <Box as="ul" mt={4} fontSize={"sm"} fontWeight="medium" lineHeight="1.5em" w="40vw" listStyleType="circle" listStylePosition={"inside"}>
+              <Heading as="h1" mb={2}>العناوينــ :</Heading>
+              {headings.map((heading) => (
+                <li key={heading}>{heading}</li>
+              ))}
+            </Box>
+          )}
           {summary.length !== 0 && (
-            <Box mt={4} fontSize={"sm"} fontWeight="medium" lineHeight="1.5em">
-              <Heading as="h1" mb={2}>الملخصــ</Heading>
+            <Box mt={4} fontSize={"sm"} fontWeight="medium" lineHeight="1.5em" w="40vw">
+              <Heading as="h1" mb={2}>الملخصــ :</Heading>
               <Text color="gray.500">عدد الكلمات : {summary.split(" ").length}</Text>
-              <Text>{summary}</Text>
+              <Text textAlign={"justify"}>{summary}</Text>
+            </Box>
+          )}
+          {people.length > 0 && (
+            <Box mt={4} fontSize={"sm"} fontWeight="medium" lineHeight="1.5em" w="40vw">
+              <Heading as="h1" mb={2}>الأشخاصـ :</Heading>
+              <HStack alignItems="start" gap={4}>
+                {people.map((person) => (
+                  <HStack mb="2">
+                    <Avatar.Root>
+                      <Avatar.Fallback />
+                    </Avatar.Root>
+                    <b>{person}</b>
+                  </HStack>
+                ))}
+              </HStack>
             </Box>
           )}
         </VStack>
