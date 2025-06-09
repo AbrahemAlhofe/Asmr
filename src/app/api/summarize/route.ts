@@ -2,7 +2,6 @@ import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
-import { SummarizeResponse } from "@/lib/types";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
