@@ -8,3 +8,8 @@ export type TranscribeResponse = {
     transcription: Block[];
     cost: number;
 }
+
+export type SummarizeResponse = {
+    summary: string;
+    cost: number;
+}

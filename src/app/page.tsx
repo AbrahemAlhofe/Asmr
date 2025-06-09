@@ -12,18 +12,24 @@ import {
   Text,
   Container
 } from "@chakra-ui/react";
-import { Block, TranscribeResponse } from "@/lib/types";
+import { Block, SummarizeResponse, TranscribeResponse } from "@/lib/types";
 import YouTube, { YouTubePlayer } from 'react-youtube';
 
 export default function Home() {
+  
   const [url, setUrl] = useState("");
   const [videoId, setVideoId] = useState("");
   const player = useRef<YouTubePlayer | null>(null);
-  const [transcript, setTranscription] = useState<Block[]>([]);
-  const [loading, setLoading] = useState(false);
   const [playerContainerHeight, setPlayerContainerHeight] = useState(0);
-  const analysisRef = useRef<HTMLDivElement | null>(null);
+
+  const [transcript, setTranscription] = useState<Block[]>([]);
+  const [summary, setSummary] = useState("");
   const [totalCost, setTotalCost] = useState(0);
+  const [people, setPeople] = useState<string[]>([]);
+
+  const [loading, setLoading] = useState(false);
+  const analysisRef = useRef<HTMLDivElement | null>(null);
+  
 
   useEffect(() => {
     if (analysisRef.current != null) {
@@ -44,21 +50,37 @@ export default function Home() {
     }
   }
 
-  const getTranscript = async () => {
-    setLoading(true); // Start loading
+  const transcribe = async () => {
+    const response = await fetch("/api/transcribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    const { transcription, cost }: TranscribeResponse = await response.json();
+    setTranscription(transcription);
+    setTotalCost(+cost.toFixed(2));
+    setPeople([...new Set(transcription.flatMap(block => block.body.map(item => item.name)))]);
+  };
+
+  const summarize = async () => {
+    const response = await fetch("/api/summarize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    const { summary, cost }: SummarizeResponse = await response.json();
+    setSummary(summary);
+    setTotalCost((currentCost) => currentCost + +cost.toFixed(2));
+  };
+
+  const analyze = async () => {
+    setLoading(true);
     try {
-      const response = await fetch("/api/transcribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      const { transcription, cost }: TranscribeResponse = await response.json();
-      setTranscription(transcription);
-      setTotalCost(+cost.toFixed(2));
+      await Promise.all([transcribe(), summarize()]);
     } catch (error) {
       console.error("Error analyzing:", error);
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
@@ -74,7 +96,7 @@ export default function Home() {
           <HStack w="full">
             <Button
               colorScheme="teal"
-              onClick={getTranscript}
+              onClick={analyze}
               loading={loading}
               p={4}
             >
@@ -92,11 +114,18 @@ export default function Home() {
           {videoId.length !== 0 && (
             <YouTube ref={player} videoId={videoId} />
           )}
+          {summary.length !== 0 && (
+            <Box mt={4} fontSize={"sm"} fontWeight="medium" lineHeight="1.5em">
+              <Heading as="h1" mb={2}>الملخصــ</Heading>
+              <Text color="gray.500">عدد الكلمات : {summary.split(" ").length}</Text>
+              <Text>{summary}</Text>
+            </Box>
+          )}
         </VStack>
       </Box>
       <VStack ref={analysisRef} gap={4} p={8} w="55vw">
           {transcript.map((block: Block) => (
-            <Container key={block.timestamp} w="full">
+            <Container key={block.timestamp} w="full" mt={4}>
               <Heading as="h2" size="lg" mt={4} textAlign="start" cursor="pointer" w="full" onClick={setTimestamp(block.timestamp)}>
                 <Text textDecoration="underline">{block.heading}</Text>
                 <Text fontSize="sm" color="gray.500" fontWeight="medium" lineHeight="1.5em" mt={2}>{block.timestamp}</Text>
@@ -112,6 +141,7 @@ export default function Home() {
                   dir="rtl"
                   w="full"
                   key={`${block.timestamp}-${item.name}`}
+                  mt={4}
                 >
                   <HStack>
                     <Avatar.Root>
