@@ -40,7 +40,11 @@ export default function Home() {
   }, [analysisRef, transcript])
 
   useEffect(() => {
-    if ( url.length != 0 ) setVideoId(url.split("v=")[1]);
+    const isValidUrl = (url: string) => {
+      const regex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=)?([a-zA-Z0-9_-]{11})/;
+      return regex.test(url);
+    }
+    if ( url.length != 0 && isValidUrl(url) ) setVideoId(url.split("v=")[1]);
   }, [url])
 
   const setTimestamp = (timestamp: string) => () => {
@@ -176,7 +180,6 @@ export default function Home() {
                   bg="gray.800"
                   borderRadius="md"
                   boxShadow="md"
-                  maxHeight="70vh"
                   overflowY="auto"
                   dir="rtl"
                   w="full"
@@ -189,7 +192,7 @@ export default function Home() {
                     </Avatar.Root>
                     <b>{item.name}</b>
                   </HStack>
-                  <Box as="p" textAlign="justify">{item.text}</Box>
+                  <Box as="p">{item.text.split("\n").map((line, index) => <Text key={index} textAlign={"justify"} mt="3">{line}</Text>)}</Box>
                   <Box mt={4} fontSize={"sm"} color="gray.500" fontWeight="medium" lineHeight="1.5em">
                     { item.text && <Text>عدد الكلمات : {item.text.split(" ").length}</Text> }
                   </Box>
