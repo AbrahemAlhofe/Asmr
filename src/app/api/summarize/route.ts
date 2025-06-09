@@ -1,9 +1,8 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
-import { SummarizeResponse, TranscribeResponse } from "@/lib/types";
-import { estimateCost } from "@/lib/utils";
+import { SummarizeResponse } from "@/lib/types";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
@@ -54,18 +53,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
-    const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
-
-    const cost = estimateCost({
-      model,
-      inputTokens,
-      outputTokens
-    });
-
     return NextResponse.json<SummarizeResponse>({
-      summary: response.text,
-      cost
+      summary: response.text
     });
   } catch (err) {
     console.error("Transcript fetch or AI generation failed:", err);

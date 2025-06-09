@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import { TranscribeResponse } from "@/lib/types";
-import { estimateCost } from "@/lib/utils";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
@@ -80,18 +79,8 @@ export async function POST(req: NextRequest) {
       ]
     });
 
-    const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
-    const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
-
-    const cost = estimateCost({
-      model: 'gemini-2.5-flash-preview-05-20',
-      inputTokens,
-      outputTokens
-    });
-
     return NextResponse.json<TranscribeResponse>({
-      transcription: JSON.parse(response.text as string) as TranscribeResponse["transcription"],
-      cost
+      transcription: JSON.parse(response.text as string) as TranscribeResponse["transcription"]
     });
   } catch (err) {
     console.error("Transcript fetch or AI generation failed:", err);

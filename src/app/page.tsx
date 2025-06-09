@@ -26,7 +26,6 @@ export default function Home() {
   const [summary, setSummary] = useState("");
   const [people, setPeople] = useState<string[]>([]);
   const [headings, setHeadings] = useState<string[]>([]);
-  const [totalCost, setTotalCost] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const analysisRef = useRef<HTMLDivElement | null>(null);
@@ -57,9 +56,8 @@ export default function Home() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     });
-    const { transcription, cost }: TranscribeResponse = await response.json();
+    const { transcription }: TranscribeResponse = await response.json();
     setTranscription(transcription);
-    setTotalCost(+cost.toFixed(2));
     setPeople([...new Set(transcription.flatMap(block => block.body.map(item => item.name)))]);
     setHeadings([...new Set(transcription.map(block => block.heading))]);
   };
@@ -70,9 +68,8 @@ export default function Home() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     });
-    const { summary, cost }: SummarizeResponse = await response.json();
+    const { summary }: SummarizeResponse = await response.json();
     setSummary(summary);
-    setTotalCost((currentCost) => currentCost + +cost.toFixed(2));
   };
 
   const analyze = async () => {
@@ -90,11 +87,6 @@ export default function Home() {
     <HStack height="100vh" position={"relative"} dir="rtl" alignItems={"flex-start"}>
       <Box height={`${playerContainerHeight}px`} flexGrow={1} position={"sticky"} top={0} right={0} zIndex={1}>
         <VStack gap={4} p={8} top={0} position={"sticky"} >
-          <HStack w="full">
-            {totalCost > 0 && (
-              <Text fontFamily="monospace" color="gray.400" fontWeight="bold">التكلفة التقديرية : {totalCost * 49.43} ج.م</Text>
-            )}
-          </HStack>
           <HStack w="full">
             <Button
               colorScheme="teal"
