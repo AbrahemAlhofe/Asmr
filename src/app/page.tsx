@@ -12,7 +12,8 @@ import {
   Text,
   Container
 } from "@chakra-ui/react";
-import { Block, SummarizeResponse, TranscribeResponse } from "@/lib/types";
+import { parse } from 'best-effort-json-parser'
+import { Block } from "@/lib/types";
 import YouTube, { YouTubePlayer } from 'react-youtube';
 
 export default function Home() {
@@ -56,10 +57,23 @@ export default function Home() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     });
-    const { transcription }: TranscribeResponse = await response.json();
-    setTranscription(transcription);
-    setPeople([...new Set(transcription.flatMap(block => block.body.map(item => item.name)))]);
-    setHeadings([...new Set(transcription.map(block => block.heading))]);
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let result = "";
+
+    while (true) {
+      const { done, value } = await reader!.read();
+      if (done) break;
+      result += decoder.decode(value);
+      console.log(result)
+      try {
+        const transcription: Block[] = parse(result);
+        setTranscription(transcription);
+        setPeople([...new Set(transcription.flatMap(block => block.body.map(item => item.name)))]);
+        setHeadings([...new Set(transcription.map(block => block.heading))]);
+      } catch (error) {}
+    }
   };
 
   const summarize = async () => {
@@ -137,7 +151,7 @@ export default function Home() {
               <Heading as="h1" mb={2}>الأشخاصـ :</Heading>
               <HStack alignItems="start" gap={4}>
                 {people.map((person) => (
-                  <HStack mb="2">
+                  <HStack mb="2" key={person}>
                     <Avatar.Root>
                       <Avatar.Fallback />
                     </Avatar.Root>
@@ -156,7 +170,7 @@ export default function Home() {
                 <Text textDecoration="underline">{block.heading}</Text>
                 <Text fontSize="sm" color="gray.500" fontWeight="medium" lineHeight="1.5em" mt={2}>{block.timestamp}</Text>
               </Heading>
-              {block.body.map((item) => (
+              {block.body && block.body.map((item) => (
                 <Box
                   p={6}
                   bg="gray.800"
@@ -177,7 +191,7 @@ export default function Home() {
                   </HStack>
                   <Box as="p" textAlign="justify">{item.text}</Box>
                   <Box mt={4} fontSize={"sm"} color="gray.500" fontWeight="medium" lineHeight="1.5em">
-                    <Text>عدد الكلمات : {item.text.split(" ").length}</Text>
+                    { item.text && <Text>عدد الكلمات : {item.text.split(" ").length}</Text> }
                   </Box>
                 </Box>
               ))}
