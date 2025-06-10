@@ -56,6 +56,9 @@ export default function Home() {
   }
 
   const transcribe = async () => {
+    setTranscription([]);
+    setPeople([]);
+    setHeadings([]);
     const response = await fetch("/api/transcribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -81,6 +84,7 @@ export default function Home() {
   };
 
   const summarize = async () => {
+    setSummary("");
     const res = await fetch("/api/summarize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -146,7 +150,6 @@ export default function Home() {
           {summary.length !== 0 && (
             <Box mt={4} fontSize={"sm"} fontWeight="medium" lineHeight="1.5em" w="40vw">
               <Heading as="h1" mb={2}>الملخصــ :</Heading>
-              <Text color="gray.500">عدد الكلمات : {summary.split(" ").length}</Text>
               <Text textAlign={"justify"}>{summary}</Text>
             </Box>
           )}
@@ -192,7 +195,11 @@ export default function Home() {
                     </Avatar.Root>
                     <b>{item.name}</b>
                   </HStack>
-                  <Box as="p">{item.text.split("\n").map((line, index) => <Text key={index} textAlign={"justify"} mt="3">{line}</Text>)}</Box>
+                  { item.text &&
+                    <Box as="p">
+                      {item.text.split("\n").map((line, index) => <Text key={index} textAlign={"justify"} mt="2.5">{line}</Text>)}
+                    </Box>
+                  }
                   <Box mt={4} fontSize={"sm"} color="gray.500" fontWeight="medium" lineHeight="1.5em">
                     { item.text && <Text>عدد الكلمات : {item.text.split(" ").length}</Text> }
                   </Box>

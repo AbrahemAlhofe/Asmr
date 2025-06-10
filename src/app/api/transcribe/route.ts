@@ -98,8 +98,12 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("Transcript fetch or AI generation failed:", err);
-    return new Response("Failed to fetch transcript or analyze.", {
+    if (err instanceof Error && err.message.includes("Too Many Requests")) {
+      return new Response("Rate limit exceeded. Please try again later.", {
+        status: 429,
+      });
+    }
+    return new Response("Failed to transcribe.", {
       status: 500,
     });
   }
