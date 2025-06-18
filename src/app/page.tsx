@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Input,
   Button,
@@ -10,18 +10,28 @@ import {
   HStack,
   Avatar,
   Text,
-  Container
+  Container,
+  Spinner
 } from "@chakra-ui/react";
 import { parse } from 'best-effort-json-parser'
 import { Block } from "@/lib/types";
 import YouTube, { YouTubePlayer } from 'react-youtube';
 
 export default function Home() {
+
+  const setTimestamp = useCallback((timestamp: string) => () => {
+    if (player.current) {
+      const seconds = timestamp.split(":").reduce((acc, time) => (60 * acc) + +time, 0);
+      player.current.internalPlayer.seekTo(seconds);
+      player.current.internalPlayer.playVideo();
+    }
+  }, []);
   
   const [url, setUrl] = useState("");
   const [videoId, setVideoId] = useState("");
   const player = useRef<YouTubePlayer | null>(null);
   const [playerContainerHeight, setPlayerContainerHeight] = useState(0);
+  const [videoLoading, setVideoLoading] = useState(false);
 
   const [transcript, setTranscription] = useState<Block[]>([]);
   const [summary, setSummary] = useState("");
@@ -44,16 +54,15 @@ export default function Home() {
       const regex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=)?([a-zA-Z0-9_-]{11})/;
       return regex.test(url);
     }
-    if ( url.length != 0 && isValidUrl(url) ) setVideoId(url.split("v=")[1]);
-  }, [url])
-
-  const setTimestamp = (timestamp: string) => () => {
-    if (player.current) {
-      const seconds = timestamp.split(":").reduce((acc, time) => (60 * acc) + +time, 0);
-      player.current.internalPlayer.seekTo(seconds);
-      player.current.internalPlayer.playVideo();
+    if (url.length !== 0 && isValidUrl(url)) {
+      setVideoId(url.split("v=")[1]);
+      setVideoLoading(true);
     }
-  }
+    if (url.length === 0) {
+      setVideoId("");
+      setVideoLoading(false);
+    }
+  }, [url])
 
   const transcribe = async () => {
     setTranscription([]);
@@ -122,8 +131,9 @@ export default function Home() {
             <Button
               colorScheme="teal"
               onClick={analyze}
-              loading={loading}
               p={4}
+              loading={videoLoading || loading}
+              disabled={videoId.length === 0}
             >
               حلل الحلقة
             </Button>
@@ -136,9 +146,30 @@ export default function Home() {
               dir="ltr"
             />
           </HStack>
-          {videoId.length !== 0 && (
-            <YouTube ref={player} videoId={videoId} />
-          )}
+          <Box position="relative" w="100%" h="300px">
+            { videoId && <YouTube
+              ref={player}
+              videoId={videoId}
+              onReady={() => setVideoLoading(false)}
+              opts={{ width: "100%", height: "300" }}
+            /> }
+            {videoLoading && (
+              <Box
+                position="absolute"
+                top={0}
+                left={0}
+                w="100%"
+                h="100%"
+                bg="blackAlpha.600"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                zIndex={10}
+              >
+                <Spinner />
+              </Box>
+            )}
+          </Box>
           {headings.length > 0 && (
             <Box as="ul" mt={4} fontSize={"sm"} fontWeight="medium" lineHeight="1.5em" w="40vw" listStyleType="circle" listStylePosition={"inside"}>
               <Heading as="h1" mb={2}>العناوينــ :</Heading>
