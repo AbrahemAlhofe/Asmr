@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import {
   Input,
   Button,
@@ -16,7 +16,7 @@ import {
 import { parse } from 'best-effort-json-parser'
 import { Block } from "@/lib/types";
 import YouTube, { YouTubePlayer } from 'react-youtube';
-import { useSearchParams } from "next/navigation";
+import { ActionInput } from "@/components/ui/action-input";
 
 export default function Home() {
 
@@ -28,17 +28,11 @@ export default function Home() {
     }
   }, []);
   
-  const [url, setUrl] = useState("");
-  const [videoId, setVideoId] = useState("");
+
   const player = useRef<YouTubePlayer | null>(null);
   const [playerContainerHeight, setPlayerContainerHeight] = useState(0);
   const [videoLoading, setVideoLoading] = useState(false);
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const videoUrl = searchParams.get("video") || "";
-    setUrl(videoUrl);
-  }, [searchParams]);
+  const [videoId, setVideoId] = useState("");
 
   const [transcript, setTranscription] = useState<Block[]>([]);
   const [summary, setSummary] = useState("");
@@ -56,22 +50,7 @@ export default function Home() {
     }
   }, [analysisRef, transcript])
 
-  useEffect(() => {
-    const isValidUrl = (url: string) => {
-      const regex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=)?([a-zA-Z0-9_-]{11})/;
-      return regex.test(url);
-    }
-    if (url.length !== 0 && isValidUrl(url)) {
-      setVideoId(url.split("v=")[1]);
-      setVideoLoading(true);
-    }
-    if (url.length === 0) {
-      setVideoId("");
-      setVideoLoading(false);
-    }
-  }, [url])
-
-  const transcribe = async () => {
+  const transcribe = async (url: string) => {
     setTranscription([]);
     setPeople([]);
     setHeadings([]);
@@ -99,7 +78,7 @@ export default function Home() {
     }
   };
 
-  const summarize = async () => {
+  const summarize = async (url: string) => {
     setSummary("");
     const res = await fetch("/api/summarize", {
       method: "POST",
@@ -119,10 +98,10 @@ export default function Home() {
     }
   };
 
-  const analyze = async () => {
+  const analyze = async (url: string) => {
     setLoading(true);
     try {
-      await Promise.all([transcribe(), summarize()]);
+      await Promise.all([transcribe(url), summarize(url)]);
     } catch (error) {
       console.error("Error analyzing:", error);
     } finally {
@@ -134,25 +113,9 @@ export default function Home() {
     <HStack height="100vh" position={"relative"} dir="rtl" alignItems={"flex-start"}>
       <Box height={`${playerContainerHeight}px`} flexGrow={1} position={"sticky"} top={0} right={0} zIndex={1}>
         <VStack gap={4} p={8} top={0} position={"sticky"} >
-          <HStack w="full">
-            <Button
-              colorScheme="teal"
-              onClick={analyze}
-              p={4}
-              loading={videoLoading || loading}
-              disabled={videoId.length === 0}
-            >
-              حلل الحلقة
-            </Button>
-            <Input
-              placeholder="( e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ )"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              p={5}
-              variant="subtle"
-              dir="ltr"
-            />
-          </HStack>
+          <Suspense>
+            <ActionInput loading={videoLoading || loading} onAction={analyze} onVideoIdChange={videoId => setVideoId(videoId)}></ActionInput>
+          </Suspense>
           <Box position="relative" w="100%" h="300px">
             { videoId && <YouTube
               ref={player}
