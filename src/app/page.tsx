@@ -16,6 +16,7 @@ import {
 import { parse } from 'best-effort-json-parser'
 import { Block } from "@/lib/types";
 import YouTube, { YouTubePlayer } from 'react-youtube';
+import { useSearchParams } from "next/navigation";
 
 export default function Home() {
 
@@ -32,6 +33,12 @@ export default function Home() {
   const player = useRef<YouTubePlayer | null>(null);
   const [playerContainerHeight, setPlayerContainerHeight] = useState(0);
   const [videoLoading, setVideoLoading] = useState(false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const videoUrl = searchParams.get("video") || "";
+    setUrl(videoUrl);
+  }, [searchParams]);
 
   const [transcript, setTranscription] = useState<Block[]>([]);
   const [summary, setSummary] = useState("");
